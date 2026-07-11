@@ -1,6 +1,8 @@
 # rag-mcp-server
 
-A [Model Context Protocol](https://modelcontextprotocol.io) server in Java 21 /
+[![CI](https://github.com/Adz-ai/rag-mcp-server/actions/workflows/ci.yml/badge.svg)](https://github.com/Adz-ai/rag-mcp-server/actions/workflows/ci.yml)
+
+A [Model Context Protocol](https://modelcontextprotocol.io) server in Java 25 /
 Spring Boot 4, exposing a RAG service ([rag-service](https://github.com/Adz-ai/rag-service)) as tools
 that any MCP client — Claude Code, Claude Desktop, an agent framework — can
 discover and call.
