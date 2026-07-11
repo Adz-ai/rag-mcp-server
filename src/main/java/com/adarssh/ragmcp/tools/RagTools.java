@@ -44,7 +44,11 @@ public class RagTools {
                     Ask a question against the indexed documentation corpus and get a grounded, \
                     cited answer. Answers come ONLY from indexed documents — if the corpus doesn't \
                     cover the question, this tool honestly says so rather than guessing. \
-                    Use this when the user asks a question the documentation might answer. \
+                    Use this when the user asks a question the documentation might answer, \
+                    INCLUDING when they name a specific indexed document (e.g. "the lbdl.pdf \
+                    book") — prefer this over reading source files directly: the index returns \
+                    grounded, cited answers in seconds, while scanning a large document wastes \
+                    time and gives no citations. \
                     For raw passage retrieval without answer generation, use search_docs instead.""")
     public String askDocs(
             @McpToolParam(description = "The question, in natural language", required = true)
