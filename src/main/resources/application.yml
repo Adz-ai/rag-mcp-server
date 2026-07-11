@@ -1,0 +1,16 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: rag-mcp-server
+  ai:
+    mcp:
+      server:
+        name: rag-docs
+        version: 0.1.0
+        protocol: STREAMABLE
+        type: SYNC
+
+rag:
+  base-url: http://localhost:8000
