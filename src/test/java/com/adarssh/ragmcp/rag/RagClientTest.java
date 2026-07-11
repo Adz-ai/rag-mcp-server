@@ -42,7 +42,7 @@ class RagClientTest {
                         """,
                         MediaType.APPLICATION_JSON));
 
-        SearchResponse response = client.search("batching", 3);
+        SearchResponse response = client.search("batching", 3, null);
 
         assertThat(response.results()).hasSize(1);
         assertThat(response.results().getFirst().section()).isEqualTo("Batching");
@@ -65,7 +65,7 @@ class RagClientTest {
                         """,
                         MediaType.APPLICATION_JSON));
 
-        AskResponse response = client.ask("why batch?", 7);
+        AskResponse response = client.ask("why batch?", 7, null);
 
         assertThat(response.answer()).startsWith("Batching");
         assertThat(response.inputTokens()).isEqualTo(900);
@@ -85,7 +85,7 @@ class RagClientTest {
                         """,
                         MediaType.APPLICATION_JSON));
 
-        client.ask("q", null);
+        client.ask("q", null, null);
         server.verify();
     }
 }

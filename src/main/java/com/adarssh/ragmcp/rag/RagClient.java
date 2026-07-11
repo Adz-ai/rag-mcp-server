@@ -26,21 +26,27 @@ public class RagClient {
         this.http = builder.baseUrl(properties.baseUrl()).build();
     }
 
-    public SearchResponse search(String query, int topK) {
+    public SearchResponse search(String query, int topK, String source) {
         return http.get()
-                .uri(uri -> uri.path("/search")
-                        .queryParam("q", query)
-                        .queryParam("top_k", topK)
-                        .build())
+                .uri(uri -> {
+                    uri.path("/search").queryParam("q", query).queryParam("top_k", topK);
+                    if (source != null && !source.isBlank()) {
+                        uri.queryParam("source", source);
+                    }
+                    return uri.build();
+                })
                 .retrieve()
                 .body(SearchResponse.class);
     }
 
-    public AskResponse ask(String question, Integer topK) {
+    public AskResponse ask(String question, Integer topK, String source) {
         Map<String, Object> body = new HashMap<>();
         body.put("question", question);
         if (topK != null) {
             body.put("top_k", topK);
+        }
+        if (source != null && !source.isBlank()) {
+            body.put("source", source);
         }
         return http.post()
                 .uri("/ask")

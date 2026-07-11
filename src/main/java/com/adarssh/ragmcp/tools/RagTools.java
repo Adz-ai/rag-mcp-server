@@ -50,9 +50,16 @@ public class RagTools {
             @McpToolParam(description = "The question, in natural language", required = true)
                     String question,
             @McpToolParam(description = "Passages to retrieve, 1-20 (default 5)", required = false)
-                    Integer topK) {
+                    Integer topK,
+            @McpToolParam(
+                            description = "Restrict retrieval to sources whose path contains this "
+                                    + "substring (e.g. 'lbdl.pdf' or 'docs/corpus'). Use when the "
+                                    + "user scopes the question to a particular document or "
+                                    + "collection; omit to search everything.",
+                            required = false)
+                    String source) {
         try {
-            AskResponse response = rag.ask(question, topK);
+            AskResponse response = rag.ask(question, topK, source);
             StringBuilder out = new StringBuilder(response.answer());
             if (!response.citations().isEmpty()) {
                 out.append("\n\nSources:\n");
@@ -88,9 +95,15 @@ public class RagTools {
             @McpToolParam(description = "Search query, in natural language", required = true)
                     String query,
             @McpToolParam(description = "Results to return, 1-20 (default 5)", required = false)
-                    Integer topK) {
+                    Integer topK,
+            @McpToolParam(
+                            description = "Restrict search to sources whose path contains this "
+                                    + "substring. Use when the user names a specific document or "
+                                    + "collection; omit to search everything.",
+                            required = false)
+                    String source) {
         try {
-            SearchResponse response = rag.search(query, topK != null ? topK : 5);
+            SearchResponse response = rag.search(query, topK != null ? topK : 5, source);
             if (response.results().isEmpty()) {
                 return "No passages matched.";
             }

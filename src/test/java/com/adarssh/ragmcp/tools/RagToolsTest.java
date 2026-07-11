@@ -34,14 +34,14 @@ class RagToolsTest {
 
     @Test
     void askDocsFormatsAnswerWithSourcesAndTelemetry() {
-        when(rag.ask("why batch?", null)).thenReturn(new AskResponse(
+        when(rag.ask("why batch?", null, null)).thenReturn(new AskResponse(
                 "Batching amortises overhead [1].",
                 List.of(1),
                 List.of(PASSAGE),
                 "llama3.1:8b",
                 900, 40, null, 210.0, 4900.0));
 
-        String out = tools.askDocs("why batch?", null);
+        String out = tools.askDocs("why batch?", null, null);
 
         assertThat(out).contains("Batching amortises overhead [1].");
         assertThat(out).contains("[1] Model serving — Batching");
@@ -51,18 +51,18 @@ class RagToolsTest {
 
     @Test
     void askDocsIncludesCostForHostedModels() {
-        when(rag.ask(anyString(), any())).thenReturn(new AskResponse(
+        when(rag.ask(anyString(), any(), any())).thenReturn(new AskResponse(
                 "Answer [1].", List.of(1), List.of(PASSAGE),
                 "claude-haiku-4-5", 900, 40, 0.0021, 210.0, 2700.0));
 
-        assertThat(tools.askDocs("q", 5)).contains("cost $0.0021");
+        assertThat(tools.askDocs("q", 5, null)).contains("cost $0.0021");
     }
 
     @Test
     void searchDocsFormatsRankedPassages() {
-        when(rag.search("batching", 5)).thenReturn(new SearchResponse(List.of(PASSAGE)));
+        when(rag.search("batching", 5, null)).thenReturn(new SearchResponse(List.of(PASSAGE)));
 
-        String out = tools.searchDocs("batching", null);
+        String out = tools.searchDocs("batching", null, null);
 
         assertThat(out).contains("#1 (score 0.830) Model serving — Batching");
         assertThat(out).contains("Dynamic batching...");
@@ -71,21 +71,30 @@ class RagToolsTest {
     @Test
     void sectionlessPassagesOmitTheDanglingDash() {
         Passage pdfPassage = new Passage(1, 86, "The Little Book", "", "book.pdf", 0.5, "text");
-        when(rag.ask(anyString(), any())).thenReturn(new AskResponse(
+        when(rag.ask(anyString(), any(), any())).thenReturn(new AskResponse(
                 "Answer [1].", List.of(1), List.of(pdfPassage),
                 "llama3.1:8b", 10, 5, null, 100.0, 900.0));
 
-        String out = tools.askDocs("q", null);
+        String out = tools.askDocs("q", null, null);
 
         assertThat(out).contains("[1] The Little Book (book.pdf, chunk 86)");
         assertThat(out).doesNotContain("The Little Book —");
     }
 
     @Test
-    void searchDocsIncludesChunkAddressForNeighborLookups() {
-        when(rag.search("batching", 5)).thenReturn(new SearchResponse(List.of(PASSAGE)));
+    void sourceFilterIsForwardedToTheRagService() {
+        when(rag.search("skew", 5, "docs/corpus")).thenReturn(new SearchResponse(List.of(PASSAGE)));
 
-        assertThat(tools.searchDocs("batching", null)).contains("(serving.md, chunk 4)");
+        String out = tools.searchDocs("skew", null, "docs/corpus");
+
+        assertThat(out).contains("#1");  // stub matched -> filter reached the client verbatim
+    }
+
+    @Test
+    void searchDocsIncludesChunkAddressForNeighborLookups() {
+        when(rag.search("batching", 5, null)).thenReturn(new SearchResponse(List.of(PASSAGE)));
+
+        assertThat(tools.searchDocs("batching", null, null)).contains("(serving.md, chunk 4)");
     }
 
     @Test
@@ -124,18 +133,18 @@ class RagToolsTest {
 
     @Test
     void searchDocsHandlesNoMatches() {
-        when(rag.search(anyString(), anyInt())).thenReturn(new SearchResponse(List.of()));
-        assertThat(tools.searchDocs("nothing", 3)).isEqualTo("No passages matched.");
+        when(rag.search(anyString(), anyInt(), any())).thenReturn(new SearchResponse(List.of()));
+        assertThat(tools.searchDocs("nothing", 3, null)).isEqualTo("No passages matched.");
     }
 
     @Test
     void failuresBecomeActionableTextNotExceptions() {
-        when(rag.ask(anyString(), any())).thenThrow(new RestClientException("connection refused"));
-        when(rag.search(anyString(), anyInt())).thenThrow(new RestClientException("boom"));
+        when(rag.ask(anyString(), any(), any())).thenThrow(new RestClientException("connection refused"));
+        when(rag.search(anyString(), anyInt(), any())).thenThrow(new RestClientException("boom"));
         when(rag.health()).thenThrow(new RestClientException("down"));
 
-        assertThat(tools.askDocs("q", null)).contains("RAG service unreachable");
-        assertThat(tools.searchDocs("q", null)).contains("RAG service unreachable");
+        assertThat(tools.askDocs("q", null, null)).contains("RAG service unreachable");
+        assertThat(tools.searchDocs("q", null, null)).contains("RAG service unreachable");
         assertThat(tools.indexStats()).contains("RAG service unreachable");
     }
 
