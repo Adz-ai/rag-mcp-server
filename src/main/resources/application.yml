@@ -1,5 +1,8 @@
 server:
   port: 8080
+  # Loopback-only: the MCP endpoint is unauthenticated by design (localhost
+  # demo); never expose it to the network without adding auth in front.
+  address: 127.0.0.1
 
 spring:
   application:
