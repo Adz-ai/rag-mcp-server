@@ -47,6 +47,12 @@ public final class RagApi {
     public record Health(String status, int documents, int chunks) {}
 
     @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+    public record Document(String source, String title, int chunks) {}
+
+    @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+    public record DocumentsResponse(List<Document> documents) {}
+
+    @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
     public record NeighborChunk(
             int chunkIndex,
             String title,

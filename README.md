@@ -35,6 +35,16 @@ call, not just what the tool does); results are **formatted text**, not JSON
 (the consumer is a model, not a parser); failures return as **actionable text**
 rather than protocol errors, so the model can react.
 
+## Resources and prompts (the other two MCP primitives)
+
+| Primitive | What it exposes |
+|---|---|
+| Resource `rag://documents` | The indexed document list (source, title, chunk count) — application-readable context a client can attach to a conversation |
+| Prompt `research_the_docs(topic, source?)` | A user-invoked template that drives the tools correctly: multi-query search, neighbor expansion around the best hits, cited synthesis |
+
+Tools are model-invoked actions; resources are application-controlled context;
+prompts are user-invoked templates. This server implements all three.
+
 ## Run it
 
 ```bash

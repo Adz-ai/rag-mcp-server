@@ -2,6 +2,7 @@ package com.adarssh.ragmcp.rag;
 
 import com.adarssh.ragmcp.rag.RagApi.AskRequest;
 import com.adarssh.ragmcp.rag.RagApi.AskResponse;
+import com.adarssh.ragmcp.rag.RagApi.DocumentsResponse;
 import com.adarssh.ragmcp.rag.RagApi.Health;
 import com.adarssh.ragmcp.rag.RagApi.NeighborsResponse;
 import com.adarssh.ragmcp.rag.RagApi.SearchResponse;
@@ -66,5 +67,9 @@ public class RagClient {
 
     public Health health() {
         return http.get().uri("/healthz").retrieve().body(Health.class);
+    }
+
+    public DocumentsResponse documents() {
+        return http.get().uri("/documents").retrieve().body(DocumentsResponse.class);
     }
 }
