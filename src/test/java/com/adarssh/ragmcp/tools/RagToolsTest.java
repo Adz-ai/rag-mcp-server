@@ -60,7 +60,7 @@ class RagToolsTest {
 
     @Test
     void searchDocsFormatsRankedPassages() {
-        when(rag.search("batching", 5, null)).thenReturn(new SearchResponse(List.of(PASSAGE)));
+        when(rag.search("batching", null, null)).thenReturn(new SearchResponse(List.of(PASSAGE)));
 
         String out = tools.searchDocs("batching", null, null);
 
@@ -83,7 +83,7 @@ class RagToolsTest {
 
     @Test
     void sourceFilterIsForwardedToTheRagService() {
-        when(rag.search("skew", 5, "docs/corpus")).thenReturn(new SearchResponse(List.of(PASSAGE)));
+        when(rag.search("skew", null, "docs/corpus")).thenReturn(new SearchResponse(List.of(PASSAGE)));
 
         String out = tools.searchDocs("skew", null, "docs/corpus");
 
@@ -92,7 +92,7 @@ class RagToolsTest {
 
     @Test
     void searchDocsIncludesChunkAddressForNeighborLookups() {
-        when(rag.search("batching", 5, null)).thenReturn(new SearchResponse(List.of(PASSAGE)));
+        when(rag.search("batching", null, null)).thenReturn(new SearchResponse(List.of(PASSAGE)));
 
         assertThat(tools.searchDocs("batching", null, null)).contains("(serving.md, chunk 4)");
     }
@@ -133,14 +133,14 @@ class RagToolsTest {
 
     @Test
     void searchDocsHandlesNoMatches() {
-        when(rag.search(anyString(), anyInt(), any())).thenReturn(new SearchResponse(List.of()));
+        when(rag.search(anyString(), any(), any())).thenReturn(new SearchResponse(List.of()));
         assertThat(tools.searchDocs("nothing", 3, null)).isEqualTo("No passages matched.");
     }
 
     @Test
     void failuresBecomeActionableTextNotExceptions() {
         when(rag.ask(anyString(), any(), any())).thenThrow(new RestClientException("connection refused"));
-        when(rag.search(anyString(), anyInt(), any())).thenThrow(new RestClientException("boom"));
+        when(rag.search(anyString(), any(), any())).thenThrow(new RestClientException("boom"));
         when(rag.health()).thenThrow(new RestClientException("down"));
 
         assertThat(tools.askDocs("q", null, null)).contains("RAG service unreachable");
@@ -152,5 +152,46 @@ class RagToolsTest {
     void indexStatsReportsCounts() {
         when(rag.health()).thenReturn(new Health("ok", 2, 10));
         assertThat(tools.indexStats()).isEqualTo("status=ok documents=2 chunks=10");
+    }
+
+    @Test
+    void topKIsClampedToTheDocumentedRange() {
+        when(rag.search("q", 20, null)).thenReturn(new SearchResponse(List.of(PASSAGE)));
+
+        String out = tools.searchDocs("q", 999, null);
+
+        assertThat(out).contains("#1"); // stub only matches if 999 was clamped to 20
+    }
+
+    @Test
+    void outOfRangeCitationsAreSkippedNotCrashed() {
+        when(rag.ask(anyString(), any(), any())).thenReturn(new AskResponse(
+                "Answer [1].", List.of(1, 7), List.of(PASSAGE),
+                "llama3.1:8b", 10, 5, null, 100.0, 900.0));
+
+        String out = tools.askDocs("q", null, null);
+
+        assertThat(out).contains("[1] Model serving");
+        assertThat(out).doesNotContain("[7]"); // remote-supplied index 7 has no passage
+    }
+
+    @Test
+    void nullResponseBodyBecomesActionableText() {
+        when(rag.ask(anyString(), any(), any())).thenReturn(null);
+        assertThat(tools.askDocs("q", null, null)).contains("empty response");
+    }
+
+    @Test
+    void neighborsFailureBecomesTextNotException() {
+        when(rag.neighbors(anyString(), anyInt(), anyInt(), anyInt()))
+                .thenThrow(new RestClientException("down"));
+        assertThat(tools.readChunkNeighbors("s.md", 0, null, null))
+                .contains("RAG service unreachable");
+    }
+
+    @Test
+    void nonRestClientRuntimeFailuresAreAlsoConvertedToText() {
+        when(rag.ask(anyString(), any(), any())).thenThrow(new IllegalStateException("boom"));
+        assertThat(tools.askDocs("q", null, null)).contains("RAG service unreachable");
     }
 }

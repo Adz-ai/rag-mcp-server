@@ -1,5 +1,6 @@
 package com.adarssh.ragmcp.rag;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import java.util.List;
 import tools.jackson.databind.PropertyNamingStrategies;
 import tools.jackson.databind.annotation.JsonNaming;
@@ -25,6 +26,10 @@ public final class RagApi {
 
     @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
     public record SearchResponse(List<Passage> results) {}
+
+    @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public record AskRequest(String question, Integer topK, String source) {}
 
     @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
     public record AskResponse(

@@ -13,18 +13,23 @@
 	<version>0.0.1-SNAPSHOT</version>
 	<name>rag-mcp-server</name>
 	<description>MCP server exposing a RAG service as Model Context Protocol tools</description>
-	<url/>
+	<url>https://github.com/Adz-ai/rag-mcp-server</url>
 	<licenses>
-		<license/>
+		<license>
+			<name>MIT License</name>
+			<url>https://opensource.org/license/mit</url>
+		</license>
 	</licenses>
 	<developers>
-		<developer/>
+		<developer>
+			<name>Adarssh Athithan</name>
+		</developer>
 	</developers>
 	<scm>
 		<connection/>
 		<developerConnection/>
 		<tag/>
-		<url/>
+		<url>https://github.com/Adz-ai/rag-mcp-server</url>
 	</scm>
 	<properties>
 		<java.version>25</java.version>

@@ -1,11 +1,10 @@
 package com.adarssh.ragmcp.rag;
 
+import com.adarssh.ragmcp.rag.RagApi.AskRequest;
 import com.adarssh.ragmcp.rag.RagApi.AskResponse;
 import com.adarssh.ragmcp.rag.RagApi.Health;
 import com.adarssh.ragmcp.rag.RagApi.NeighborsResponse;
 import com.adarssh.ragmcp.rag.RagApi.SearchResponse;
-import java.util.HashMap;
-import java.util.Map;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
@@ -26,10 +25,13 @@ public class RagClient {
         this.http = builder.baseUrl(properties.baseUrl()).build();
     }
 
-    public SearchResponse search(String query, int topK, String source) {
+    public SearchResponse search(String query, Integer topK, String source) {
         return http.get()
                 .uri(uri -> {
-                    uri.path("/search").queryParam("q", query).queryParam("top_k", topK);
+                    uri.path("/search").queryParam("q", query);
+                    if (topK != null) {
+                        uri.queryParam("top_k", topK);
+                    }
                     if (source != null && !source.isBlank()) {
                         uri.queryParam("source", source);
                     }
@@ -40,14 +42,8 @@ public class RagClient {
     }
 
     public AskResponse ask(String question, Integer topK, String source) {
-        Map<String, Object> body = new HashMap<>();
-        body.put("question", question);
-        if (topK != null) {
-            body.put("top_k", topK);
-        }
-        if (source != null && !source.isBlank()) {
-            body.put("source", source);
-        }
+        AskRequest body = new AskRequest(
+                question, topK, (source != null && !source.isBlank()) ? source : null);
         return http.post()
                 .uri("/ask")
                 .contentType(MediaType.APPLICATION_JSON)

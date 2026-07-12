@@ -88,4 +88,27 @@ class RagClientTest {
         client.ask("q", null, null);
         server.verify();
     }
+
+    @Test
+    void searchOmitsTopKWhenNullAndIncludesSourceWhenSet() {
+        server.expect(requestTo("http://rag/search?q=skew&source=docs/corpus"))
+                .andRespond(withSuccess("{\"results\": []}", MediaType.APPLICATION_JSON));
+
+        client.search("skew", null, "docs/corpus");
+        server.verify();
+    }
+
+    @Test
+    void neighborsBuildsTheFullQueryString() {
+        server.expect(requestTo("http://rag/neighbors?source=doc.md&index=3&before=1&after=2"))
+                .andRespond(withSuccess(
+                        "{\"chunks\": [{\"chunk_index\": 3, \"title\": \"T\", \"section\": \"S\","
+                                + " \"source\": \"doc.md\", \"content\": \"text\"}]}",
+                        MediaType.APPLICATION_JSON));
+
+        var response = client.neighbors("doc.md", 3, 1, 2);
+
+        assertThat(response.chunks()).hasSize(1);
+        assertThat(response.chunks().getFirst().chunkIndex()).isEqualTo(3);
+    }
 }

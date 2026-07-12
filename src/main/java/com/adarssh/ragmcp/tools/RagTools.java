@@ -5,10 +5,11 @@ import com.adarssh.ragmcp.rag.RagApi.Health;
 import com.adarssh.ragmcp.rag.RagApi.Passage;
 import com.adarssh.ragmcp.rag.RagApi.SearchResponse;
 import com.adarssh.ragmcp.rag.RagClient;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.ai.mcp.annotation.McpTool;
 import org.springframework.ai.mcp.annotation.McpToolParam;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestClientException;
 
 /**
  * The MCP tool surface over the RAG service.
@@ -31,6 +32,8 @@ import org.springframework.web.client.RestClientException;
  */
 @Component
 public class RagTools {
+
+    private static final Logger log = LoggerFactory.getLogger(RagTools.class);
 
     private final RagClient rag;
 
@@ -63,11 +66,17 @@ public class RagTools {
                             required = false)
                     String source) {
         try {
-            AskResponse response = rag.ask(question, topK, source);
+            AskResponse response = rag.ask(question, clampTopK(topK), source);
+            if (response == null) {
+                return "RAG service returned an empty response.";
+            }
             StringBuilder out = new StringBuilder(response.answer());
             if (!response.citations().isEmpty()) {
                 out.append("\n\nSources:\n");
                 for (int index : response.citations()) {
+                    if (index < 1 || index > response.passages().size()) {
+                        continue; // never index blindly on remote-supplied values
+                    }
                     Passage passage = response.passages().get(index - 1);
                     out.append("  [%d] %s (%s, chunk %d)\n"
                             .formatted(index, location(passage), passage.source(), passage.chunkIndex()));
@@ -82,8 +91,8 @@ public class RagTools {
                                     ? ", cost $%.4f".formatted(response.estimatedCostUsd())
                                     : ""));
             return out.toString();
-        } catch (RestClientException e) {
-            return "RAG service unreachable or failed: " + e.getMessage();
+        } catch (RuntimeException e) {
+            return failureText(e);
         }
     }
 
@@ -107,8 +116,8 @@ public class RagTools {
                             required = false)
                     String source) {
         try {
-            SearchResponse response = rag.search(query, topK != null ? topK : 5, source);
-            if (response.results().isEmpty()) {
+            SearchResponse response = rag.search(query, clampTopK(topK), source);
+            if (response == null || response.results().isEmpty()) {
                 return "No passages matched.";
             }
             StringBuilder out = new StringBuilder();
@@ -123,8 +132,8 @@ public class RagTools {
                                 passage.content()));
             }
             return out.toString().stripTrailing();
-        } catch (RestClientException e) {
-            return "RAG service unreachable or failed: " + e.getMessage();
+        } catch (RuntimeException e) {
+            return failureText(e);
         }
     }
 
@@ -152,7 +161,7 @@ public class RagTools {
                     chunkIndex,
                     clampWindow(before),
                     clampWindow(after));
-            if (response.chunks().isEmpty()) {
+            if (response == null || response.chunks().isEmpty()) {
                 return "No chunks found for source '%s' — use the source path exactly as returned by search_docs."
                         .formatted(source);
             }
@@ -162,8 +171,8 @@ public class RagTools {
                 out.append("--- chunk %d%s ---\n%s\n\n".formatted(chunk.chunkIndex(), marker, chunk.content()));
             }
             return out.toString().stripTrailing();
-        } catch (RestClientException e) {
-            return "RAG service unreachable or failed: " + e.getMessage();
+        } catch (RuntimeException e) {
+            return failureText(e);
         }
     }
 
@@ -172,6 +181,27 @@ public class RagTools {
             return 1;
         }
         return Math.max(0, Math.min(value, 10));
+    }
+
+    /** Null means "let the service apply its default"; anything else is
+     * clamped to the 1-20 range the tool descriptions promise. */
+    private static Integer clampTopK(Integer value) {
+        if (value == null) {
+            return null;
+        }
+        return Math.max(1, Math.min(value, 20));
+    }
+
+    /** Failure text the model can act on, without relaying upstream response
+     * bodies verbatim (they can carry internal detail); full exception goes
+     * to the server log. */
+    private String failureText(Exception e) {
+        log.warn("RAG service call failed", e);
+        String message = e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage();
+        if (message.length() > 200) {
+            message = message.substring(0, 200) + "…";
+        }
+        return "RAG service unreachable or failed: " + message;
     }
 
     /** "Title — Section", or just the title for section-less sources (e.g. PDFs). */
@@ -193,8 +223,8 @@ public class RagTools {
             Health health = rag.health();
             return "status=%s documents=%d chunks=%d"
                     .formatted(health.status(), health.documents(), health.chunks());
-        } catch (RestClientException e) {
-            return "RAG service unreachable or failed: " + e.getMessage();
+        } catch (RuntimeException e) {
+            return failureText(e);
         }
     }
 }

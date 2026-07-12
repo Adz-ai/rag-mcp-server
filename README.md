@@ -25,8 +25,8 @@ flowchart TD
 
 | Tool | What it does |
 |---|---|
-| `ask_docs(question, topK?)` | Grounded, cited answer from the indexed corpus; honestly refuses when the corpus doesn't cover the question |
-| `search_docs(query, topK?)` | Raw hybrid (vector + keyword) retrieval — passages with scores, no generation |
+| `ask_docs(question, topK?, source?)` | Grounded, cited answer from the indexed corpus; honestly refuses when the corpus doesn't cover the question. `source` scopes retrieval to a document/collection |
+| `search_docs(query, topK?, source?)` | Raw hybrid (vector + keyword) retrieval — passages with scores, no generation |
 | `read_chunk_neighbors(source, chunkIndex, before?, after?)` | Chunks around a search hit, in document order — widen context at read time |
 | `index_stats()` | Corpus size and service health |
 
@@ -61,7 +61,7 @@ sequenceDiagram
     M-->>C: serverInfo "rag-docs" + capabilities + Mcp-Session-Id header
     C->>M: notifications/initialized
     C->>M: tools/list
-    M-->>C: ask_docs / search_docs / index_stats (JSON Schemas from annotations)
+    M-->>C: ask_docs / search_docs / read_chunk_neighbors / index_stats (JSON Schemas from annotations)
     C->>M: tools/call ask_docs(question)
     M->>R: POST /ask
     R-->>M: answer + citations + usage
