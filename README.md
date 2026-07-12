@@ -27,7 +27,7 @@ flowchart TD
 |---|---|
 | `ask_docs(question, topK?, source?)` | Grounded, cited answer from the indexed corpus; honestly refuses when the corpus doesn't cover the question. `source` scopes retrieval to a document/collection |
 | `search_docs(query, topK?, source?)` | Raw hybrid (vector + keyword) retrieval — passages with scores, no generation |
-| `read_chunk_neighbors(source, chunkIndex, before?, after?)` | Chunks around a search hit, in document order — widen context at read time |
+| `read_chunk_neighbors(source, chunkIndex, before?, after?)` | The text around a search hit, in document order — widen context at read time. Served as one contiguous span of the source document when the service provides it (no repeated overlap text), falling back to per-chunk output |
 | `index_stats()` | Corpus size and service health |
 
 Design notes: tool **descriptions are prompts** (they tell the model *when* to

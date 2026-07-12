@@ -60,6 +60,12 @@ public final class RagApi {
             String source,
             String content) {}
 
+    /**
+     * {@code window} is the neighborhood as one contiguous slice of the source
+     * document — chunk contents deliberately share overlap text, the window
+     * doesn't. Null when the service predates it or the document lacks
+     * character offsets, so consumers must keep the per-chunk fallback.
+     */
     @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-    public record NeighborsResponse(List<NeighborChunk> chunks) {}
+    public record NeighborsResponse(List<NeighborChunk> chunks, String window) {}
 }

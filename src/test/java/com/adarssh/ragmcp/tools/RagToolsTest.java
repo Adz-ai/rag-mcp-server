@@ -102,7 +102,7 @@ class RagToolsTest {
         when(rag.neighbors("serving.md", 3, 1, 1)).thenReturn(new RagApi.NeighborsResponse(List.of(
                 new RagApi.NeighborChunk(2, "Doc", "S", "serving.md", "before text"),
                 new RagApi.NeighborChunk(3, "Doc", "S", "serving.md", "anchor text"),
-                new RagApi.NeighborChunk(4, "Doc", "S", "serving.md", "after text"))));
+                new RagApi.NeighborChunk(4, "Doc", "S", "serving.md", "after text")), null));
 
         String out = tools.readChunkNeighbors("serving.md", 3, null, null);
 
@@ -112,9 +112,25 @@ class RagToolsTest {
     }
 
     @Test
+    void readChunkNeighborsPrefersContiguousWindow() {
+        when(rag.neighbors("serving.md", 3, 1, 1)).thenReturn(new RagApi.NeighborsResponse(List.of(
+                new RagApi.NeighborChunk(2, "Doc", "S", "serving.md", "before overlap"),
+                new RagApi.NeighborChunk(3, "Doc", "S", "serving.md", "overlap anchor"),
+                new RagApi.NeighborChunk(4, "Doc", "S", "serving.md", "anchor after")),
+                "before overlap anchor after"));
+
+        String out = tools.readChunkNeighbors("serving.md", 3, null, null);
+
+        // one contiguous passage, not stitched chunks repeating overlap text
+        assertThat(out).contains("chunks 2-4 (centred on 3)");
+        assertThat(out).contains("before overlap anchor after");
+        assertThat(out).doesNotContain("--- chunk");
+    }
+
+    @Test
     void readChunkNeighborsExplainsEmptyResults() {
         when(rag.neighbors(anyString(), anyInt(), anyInt(), anyInt()))
-                .thenReturn(new RagApi.NeighborsResponse(List.of()));
+                .thenReturn(new RagApi.NeighborsResponse(List.of(), null));
 
         assertThat(tools.readChunkNeighbors("wrong-path.md", 0, null, null))
                 .contains("No chunks found")
@@ -124,7 +140,7 @@ class RagToolsTest {
     @Test
     void readChunkNeighborsClampsWindowSizes() {
         when(rag.neighbors("s.md", 5, 10, 0)).thenReturn(new RagApi.NeighborsResponse(List.of(
-                new RagApi.NeighborChunk(5, "Doc", "S", "s.md", "text"))));
+                new RagApi.NeighborChunk(5, "Doc", "S", "s.md", "text")), null));
 
         String out = tools.readChunkNeighbors("s.md", 5, 99, -3);
 

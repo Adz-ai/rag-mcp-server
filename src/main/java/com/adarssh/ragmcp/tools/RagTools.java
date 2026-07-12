@@ -165,6 +165,14 @@ public class RagTools {
                 return "No chunks found for source '%s' — use the source path exactly as returned by search_docs."
                         .formatted(source);
             }
+            // Prefer the contiguous window: one clean read of the original
+            // document span, instead of chunks that repeat their overlap text.
+            if (response.window() != null && !response.window().isBlank()) {
+                int first = response.chunks().getFirst().chunkIndex();
+                int last = response.chunks().getLast().chunkIndex();
+                return "%s, chunks %d-%d (centred on %d), as one contiguous passage:\n\n%s"
+                        .formatted(source, first, last, chunkIndex, response.window());
+            }
             StringBuilder out = new StringBuilder();
             for (var chunk : response.chunks()) {
                 String marker = chunk.chunkIndex() == chunkIndex ? " <- the chunk you asked about" : "";
